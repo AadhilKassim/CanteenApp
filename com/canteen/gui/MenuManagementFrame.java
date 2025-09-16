@@ -1,29 +1,31 @@
 package com.canteen.gui;
 
+import com.canteen.dao.MenuDAO;
 import com.canteen.model.FoodItem;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.util.*;
+import java.util.List;
 
 public class MenuManagementFrame extends JFrame {
     private JTable menuTable;
     private DefaultTableModel tableModel;
-    private static Map<Integer, FoodItem> menu = new HashMap<>();
-    private static int idCounter = 1;
+    private MenuDAO menuDAO;
+    private MainMenuFrame parentFrame;
 
-    public MenuManagementFrame() {
+    public MenuManagementFrame(MainMenuFrame parent) {
+        this.parentFrame = parent;
         setTitle("TOC H Menu - Admin Panel");
         setSize(650, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
         setLocationRelativeTo(null);
-        preloadMenu();
+        menuDAO = new MenuDAO();
 
         Color bgColor = Color.WHITE;
-        Color headerBg = new Color(45, 45, 45);
-        Color headerText = Color.WHITE;
-        Color btnBg = Color.BLACK;
-        Color btnText = Color.WHITE;
+        Color headerBg = Color.LIGHT_GRAY;
+        Color headerText = Color.BLACK;
+        Color btnBg = Color.LIGHT_GRAY;
+        Color btnText = Color.BLACK;
 
         getContentPane().setBackground(bgColor);
 
@@ -51,10 +53,12 @@ public class MenuManagementFrame extends JFrame {
         JButton addButton = new JButton("➕ Add Item");
         JButton updateButton = new JButton("✏ Update Item");
         JButton deleteButton = new JButton("🗑 Delete Item");
+        JButton viewTokensButton = new JButton("🎫 View Tokens");
+        JButton backButton = new JButton("← Back");
         JButton logoutButton = new JButton("🚪 Logout");
 
         Font btnFont = new Font("SansSerif", Font.BOLD, 14);
-        JButton[] buttons = {addButton, updateButton, deleteButton, logoutButton};
+        JButton[] buttons = {backButton, addButton, updateButton, deleteButton, viewTokensButton, logoutButton};
         for (JButton btn : buttons) {
             btn.setBackground(btnBg);
             btn.setForeground(btnText);
@@ -69,8 +73,17 @@ public class MenuManagementFrame extends JFrame {
         addButton.addActionListener(e -> addFoodItem());
         updateButton.addActionListener(e -> updateFoodItem());
         deleteButton.addActionListener(e -> deleteFoodItem());
+        backButton.addActionListener(e -> {
+            setVisible(false);
+            parentFrame.setVisible(true);
+        });
+        viewTokensButton.addActionListener(e -> {
+            setVisible(false);
+            new TokenHistoryFrame(parentFrame).setVisible(true);
+        });
         logoutButton.addActionListener(e -> {
             dispose();
+            parentFrame.dispose();
             new LoginFrame().setVisible(true);
         });
 
@@ -79,8 +92,8 @@ public class MenuManagementFrame extends JFrame {
 
     private void refreshTable() {
         tableModel.setRowCount(0);
-        Map<Integer, FoodItem> sortedMenu = new TreeMap<>(menu);
-        for (FoodItem item : sortedMenu.values()) {
+        List<FoodItem> items = menuDAO.getAllMenuItems();
+        for (FoodItem item : items) {
             tableModel.addRow(new Object[]{item.id, item.name, item.price});
         }
     }
@@ -100,8 +113,8 @@ public class MenuManagementFrame extends JFrame {
                 double price = Double.parseDouble(priceField.getText().trim());
                 if (name.isEmpty()) throw new Exception("Name cannot be empty");
 
-                menu.put(idCounter, new FoodItem(idCounter, name, price));
-                idCounter++;
+                FoodItem newItem = new FoodItem(0, name, price);
+                menuDAO.saveMenuItem(newItem);
                 refreshTable();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Invalid input!", "Error", JOptionPane.ERROR_MESSAGE);
@@ -116,10 +129,11 @@ public class MenuManagementFrame extends JFrame {
             return;
         }
         int id = (Integer) tableModel.getValueAt(row, 0);
-        FoodItem item = menu.get(id);
+        String currentName = (String) tableModel.getValueAt(row, 1);
+        double currentPrice = (Double) tableModel.getValueAt(row, 2);
 
-        JTextField nameField = new JTextField(item.name);
-        JTextField priceField = new JTextField(String.valueOf(item.price));
+        JTextField nameField = new JTextField(currentName);
+        JTextField priceField = new JTextField(String.valueOf(currentPrice));
         Object[] message = {
             new JLabel("New Name:"), nameField,
             new JLabel("New Price:"), priceField
@@ -132,7 +146,8 @@ public class MenuManagementFrame extends JFrame {
                 double price = Double.parseDouble(priceField.getText().trim());
                 if (name.isEmpty()) throw new Exception("Name cannot be empty");
 
-                menu.put(id, new FoodItem(id, name, price));
+                FoodItem updatedItem = new FoodItem(id, name, price);
+                menuDAO.saveMenuItem(updatedItem);
                 refreshTable();
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Invalid input!", "Error", JOptionPane.ERROR_MESSAGE);
@@ -149,17 +164,12 @@ public class MenuManagementFrame extends JFrame {
         int id = (Integer) tableModel.getValueAt(row, 0);
         int confirm = JOptionPane.showConfirmDialog(this, "Delete this item?", "Confirm", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            menu.remove(id);
+            menuDAO.deleteMenuItem(id);
             refreshTable();
         }
     }
 
-    private void preloadMenu() {
-        if (menu.isEmpty()) {
-            menu.put(idCounter, new FoodItem(idCounter++, "Half Biriyani", 60));
-            menu.put(idCounter, new FoodItem(idCounter++, "Full Biriyani", 120));
-            menu.put(idCounter, new FoodItem(idCounter++, "Meals", 40));
-            menu.put(idCounter, new FoodItem(idCounter++, "Chicken Fry", 60));
-        }
+    public MenuManagementFrame() {
+        this(null);
     }
 }

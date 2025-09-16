@@ -80,7 +80,10 @@ public class PaymentFrame extends JFrame {
             new MenuSelectionFrame(userEmail).setVisible(true);
         });
 
-        payButton.addActionListener(e -> processPayment());
+        payButton.addActionListener(e -> {
+            dispose();
+            new PaymentMethodFrame(userEmail, cartItems, totalAmount).setVisible(true);
+        });
 
         logoutButton.addActionListener(e -> {
             dispose();
@@ -110,20 +113,7 @@ public class PaymentFrame extends JFrame {
         totalLabel.setText("Total: ₹" + String.format("%.2f", totalAmount));
     }
 
-    private void processPayment() {
-        String paymentMethod = (String) paymentMethodCombo.getSelectedItem();
-        
-        int orderId = DatabaseConnection.getNextOrderId();
-        int tokenNumber = DatabaseConnection.getNextTokenNumber();
-        
-        Order order = new Order(orderId, userEmail, cartItems, totalAmount, paymentMethod, tokenNumber);
-        orderDAO.saveOrder(order);
-        
-        JOptionPane.showMessageDialog(this, "Payment Successful!\nToken Number: " + tokenNumber);
-        
-        dispose();
-        new TokenFrame(order).setVisible(true);
-    }
+
 
     public PaymentFrame() {
         this("guest@college.edu", new java.util.ArrayList<>());

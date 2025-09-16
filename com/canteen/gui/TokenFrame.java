@@ -1,5 +1,7 @@
 package com.canteen.gui;
 
+import com.canteen.model.Order;
+import com.canteen.model.OrderItem;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -8,76 +10,93 @@ import java.awt.print.*;
 
 public class TokenFrame extends JFrame implements Printable {
     private JPanel mainPanel;
+    private Order order;
 
-    public TokenFrame() {
-        setTitle("College Canteen Token");
-        setSize(350, 450);
+    private MainMenuFrame parentFrame;
+
+    public TokenFrame(MainMenuFrame parent, Order order) {
+        this.parentFrame = parent;
+        this.order = order;
+        setTitle("College Canteen Token Management System");
+        setSize(500, 600);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        setBackground(Color.WHITE);
 
         mainPanel = new JPanel();
         mainPanel.setBackground(Color.WHITE);
-        mainPanel.setLayout(new BorderLayout(10, 10));
-        mainPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBorder(new EmptyBorder(40, 40, 40, 40));
 
-        JLabel title = new JLabel("CANTEEN TOKEN", SwingConstants.CENTER);
-        title.setFont(new Font("SansSerif", Font.BOLD, 20));
-        title.setOpaque(true);
-        title.setBackground(new Color(240, 240, 240));
-        title.setBorder(new LineBorder(Color.LIGHT_GRAY, 1));
-        mainPanel.add(title, BorderLayout.NORTH);
+        JLabel tokenLabel = new JLabel("Token", SwingConstants.CENTER);
+        tokenLabel.setFont(new Font("Arial", Font.BOLD, 48));
+        tokenLabel.setForeground(Color.BLACK);
+        tokenLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(tokenLabel);
+        mainPanel.add(Box.createVerticalStrut(30));
 
-        JPanel tokenPanel = new JPanel();
-        tokenPanel.setBackground(Color.WHITE);
-        tokenPanel.setLayout(new FlowLayout(FlowLayout.CENTER));
-
-        JLabel tokenNum = new JLabel("45 / 50");
-        tokenNum.setFont(new Font("SansSerif", Font.BOLD, 32));
+        JLabel tokenNum = new JLabel(String.valueOf(order.getTokenNumber()), SwingConstants.CENTER);
+        tokenNum.setFont(new Font("Arial", Font.BOLD, 80));
         tokenNum.setForeground(Color.BLACK);
-        tokenNum.setBorder(new LineBorder(Color.GRAY, 3, true));
-        tokenNum.setHorizontalAlignment(SwingConstants.CENTER);
-        tokenNum.setPreferredSize(new Dimension(150, 80));
+        tokenNum.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(tokenNum);
+        mainPanel.add(Box.createVerticalStrut(40));
 
-        tokenPanel.add(tokenNum);
-        mainPanel.add(tokenPanel, BorderLayout.CENTER);
+        String itemsText = order.getItems().size() == 1 ? 
+            order.getItems().get(0).getFoodName() :
+            order.getItems().size() + " items";
+        JLabel foodName = new JLabel(itemsText, SwingConstants.CENTER);
+        foodName.setFont(new Font("Arial", Font.PLAIN, 32));
+        foodName.setForeground(Color.BLACK);
+        foodName.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(foodName);
+        mainPanel.add(Box.createVerticalStrut(30));
 
-        JPanel infoPanel = new JPanel();
-        infoPanel.setBackground(Color.WHITE);
-        infoPanel.setLayout(new GridLayout(3, 1, 5, 5));
+        JLabel amount = new JLabel("Total Amount: ₹" + String.format("%.0f", order.getTotalAmount()), SwingConstants.CENTER);
+        amount.setFont(new Font("Arial", Font.PLAIN, 24));
+        amount.setForeground(Color.BLACK);
+        amount.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(amount);
+        mainPanel.add(Box.createVerticalStrut(30));
 
-        JLabel foodName = new JLabel("🍴  Chicken Biryani", SwingConstants.CENTER);
-        foodName.setFont(new Font("SansSerif", Font.PLAIN, 18));
-
-        JLabel amount = new JLabel("💰  Total: ₹120", SwingConstants.CENTER);
-        amount.setFont(new Font("SansSerif", Font.PLAIN, 16));
-
-        JLabel payment = new JLabel("💳  Paid by Credit Card", SwingConstants.CENTER);
-        payment.setFont(new Font("SansSerif", Font.PLAIN, 16));
-
-        infoPanel.add(foodName);
-        infoPanel.add(amount);
-        infoPanel.add(payment);
-
-        mainPanel.add(infoPanel, BorderLayout.SOUTH);
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        JButton printButton = new JButton("🖨 Print Token");
-        JButton backButton = new JButton("← Back to Payment");
+        JLabel payment = new JLabel("Payment Method:", SwingConstants.CENTER);
+        payment.setFont(new Font("Arial", Font.PLAIN, 24));
+        payment.setForeground(Color.BLACK);
+        payment.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(payment);
         
-        printButton.setFont(new Font("SansSerif", Font.BOLD, 14));
-        backButton.setFont(new Font("SansSerif", Font.BOLD, 14));
+        JLabel paymentMethod = new JLabel(order.getPaymentMethod(), SwingConstants.CENTER);
+        paymentMethod.setFont(new Font("Arial", Font.PLAIN, 24));
+        paymentMethod.setForeground(Color.BLACK);
+        paymentMethod.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(paymentMethod);
+
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(Color.WHITE);
         
-        printButton.addActionListener(e -> printToken());
+        JButton backButton = new JButton("Back to Menu");
+        backButton.setFont(new Font("Arial", Font.PLAIN, 16));
+        backButton.setPreferredSize(new Dimension(150, 40));
+        backButton.setBackground(Color.LIGHT_GRAY);
+        backButton.setForeground(Color.BLACK);
+        backButton.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
         backButton.addActionListener(e -> {
-            dispose();
-            new PaymentFrame().setVisible(true);
+            setVisible(false);
+            parentFrame.setVisible(true);
         });
         
         buttonPanel.add(backButton);
-        buttonPanel.add(printButton);
-
+        
         add(mainPanel, BorderLayout.CENTER);
         add(buttonPanel, BorderLayout.SOUTH);
+    }
+
+    public TokenFrame(Order order) {
+        this(null, order);
+    }
+
+    public TokenFrame() {
+        this(null, null);
     }
 
     private void printToken() {

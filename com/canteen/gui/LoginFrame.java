@@ -23,6 +23,7 @@ public class LoginFrame extends JFrame {
         setSize(400, 300);
         setLocationRelativeTo(null);
         setLayout(new GridBagLayout());
+        getContentPane().setBackground(Color.WHITE);
         
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(10, 10, 10, 10);
@@ -48,6 +49,8 @@ public class LoginFrame extends JFrame {
         add(passwordField, gbc);
         
         JButton loginButton = new JButton("Login");
+        loginButton.setBackground(Color.LIGHT_GRAY);
+        loginButton.setForeground(Color.BLACK);
         gbc.gridx = 0; gbc.gridy = 3; gbc.gridwidth = 2;
         add(loginButton, gbc);
         
@@ -66,11 +69,7 @@ public class LoginFrame extends JFrame {
         User user = authenticateUser(registerNumber, password);
         if (user != null) {
             dispose();
-            if (user.isAdmin()) {
-                new MenuManagementFrame().setVisible(true);
-            } else {
-                new MenuSelectionFrame(user.getEmail()).setVisible(true);
-            }
+            new MainMenuFrame(user).setVisible(true);
         } else {
             JOptionPane.showMessageDialog(this, "Invalid credentials");
         }

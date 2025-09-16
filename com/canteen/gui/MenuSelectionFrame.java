@@ -18,143 +18,144 @@ public class MenuSelectionFrame extends JFrame {
     private MenuDAO menuDAO;
     private List<OrderItem> cart;
     private String userEmail;
+    private MainMenuFrame parentFrame;
+    private JLabel cartLabel;
 
-    public MenuSelectionFrame(String userEmail) {
+    public MenuSelectionFrame(MainMenuFrame parent, String userEmail) {
+        this.parentFrame = parent;
         this.userEmail = userEmail;
         this.menuDAO = new MenuDAO();
         this.cart = new ArrayList<>();
         
-        setTitle("Select Items - College Canteen");
-        setSize(800, 600);
+        setTitle("College Canteen Token Management System");
+        setSize(400, 700);
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.HIDE_ON_CLOSE);
+        setBackground(Color.WHITE);
         setLayout(new BorderLayout());
 
-        createMenuPanel();
-        createCartPanel();
-        createButtonPanel();
+        createMainPanel();
         loadMenuItems();
     }
 
-    private void createMenuPanel() {
-        JPanel menuPanel = new JPanel(new BorderLayout());
-        menuPanel.setBorder(BorderFactory.createTitledBorder("Menu"));
+    private void createMainPanel() {
+        JPanel mainPanel = new JPanel();
+        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
 
-        String[] menuColumns = {"ID", "Item", "Price"};
-        menuModel = new DefaultTableModel(menuColumns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) { return false; }
-        };
-
-        menuTable = new JTable(menuModel);
-        menuTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        JScrollPane menuScroll = new JScrollPane(menuTable);
-
-        JPanel addPanel = new JPanel();
-        JSpinner quantitySpinner = new JSpinner(new SpinnerNumberModel(1, 1, 10, 1));
-        JButton addButton = new JButton("Add to Cart");
-
-        addButton.addActionListener(e -> {
-            int row = menuTable.getSelectedRow();
-            if (row != -1) {
-                int id = (Integer) menuModel.getValueAt(row, 0);
-                String name = (String) menuModel.getValueAt(row, 1);
-                double price = Double.parseDouble(menuModel.getValueAt(row, 2).toString().replace("₹", ""));
-                int quantity = (Integer) quantitySpinner.getValue();
-
-                OrderItem item = new OrderItem(id, name, quantity, price);
-                cart.add(item);
-                updateCartTable();
-                quantitySpinner.setValue(1);
-            }
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(Color.WHITE);
+        
+        JButton backButton = new JButton("← Back");
+        backButton.setFont(new Font("Arial", Font.PLAIN, 16));
+        backButton.addActionListener(e -> {
+            setVisible(false);
+            parentFrame.setVisible(true);
         });
+        
+        JLabel titleLabel = new JLabel("Select Items", SwingConstants.CENTER);
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        titleLabel.setForeground(Color.BLACK);
+        
+        headerPanel.add(backButton, BorderLayout.WEST);
+        headerPanel.add(titleLabel, BorderLayout.CENTER);
+        mainPanel.add(headerPanel);
+        mainPanel.add(Box.createVerticalStrut(30));
 
-        addPanel.add(new JLabel("Quantity:"));
-        addPanel.add(quantitySpinner);
-        addPanel.add(addButton);
+        List<FoodItem> items = menuDAO.getAllMenuItems();
+        for (FoodItem item : items) {
+            JPanel itemPanel = createItemPanel(item);
+            mainPanel.add(itemPanel);
+            mainPanel.add(Box.createVerticalStrut(15));
+        }
 
-        menuPanel.add(menuScroll, BorderLayout.CENTER);
-        menuPanel.add(addPanel, BorderLayout.SOUTH);
-        add(menuPanel, BorderLayout.WEST);
-    }
+        mainPanel.add(Box.createVerticalStrut(20));
+        
+        cartLabel = new JLabel("Selected Items: 0 | Total: ₹0", SwingConstants.CENTER);
+        cartLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        cartLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        mainPanel.add(cartLabel);
+        mainPanel.add(Box.createVerticalStrut(20));
 
-    private void createCartPanel() {
-        JPanel cartPanel = new JPanel(new BorderLayout());
-        cartPanel.setBorder(BorderFactory.createTitledBorder("Cart"));
-
-        String[] cartColumns = {"Item", "Qty", "Price", "Subtotal"};
-        cartModel = new DefaultTableModel(cartColumns, 0) {
-            @Override
-            public boolean isCellEditable(int row, int column) { return false; }
-        };
-
-        cartTable = new JTable(cartModel);
-        JScrollPane cartScroll = new JScrollPane(cartTable);
-
-        totalLabel = new JLabel("Total: ₹0.00");
-        totalLabel.setFont(new Font("Arial", Font.BOLD, 16));
-
-        JButton removeButton = new JButton("Remove Selected");
-        removeButton.addActionListener(e -> {
-            int row = cartTable.getSelectedRow();
-            if (row != -1) {
-                cart.remove(row);
-                updateCartTable();
-            }
-        });
-
-        JPanel cartBottomPanel = new JPanel(new BorderLayout());
-        cartBottomPanel.add(removeButton, BorderLayout.WEST);
-        cartBottomPanel.add(totalLabel, BorderLayout.EAST);
-
-        cartPanel.add(cartScroll, BorderLayout.CENTER);
-        cartPanel.add(cartBottomPanel, BorderLayout.SOUTH);
-        add(cartPanel, BorderLayout.EAST);
-    }
-
-    private void createButtonPanel() {
-        JPanel buttonPanel = new JPanel();
-        JButton proceedButton = new JButton("Proceed to Payment");
-        JButton logoutButton = new JButton("Logout");
-
-        proceedButton.addActionListener(e -> {
+        JButton buyButton = new JButton("Proceed to Payment");
+        buyButton.setFont(new Font("Arial", Font.PLAIN, 18));
+        buyButton.setPreferredSize(new Dimension(300, 50));
+        buyButton.setMaximumSize(new Dimension(300, 50));
+        buyButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+        buyButton.setBackground(Color.LIGHT_GRAY);
+        buyButton.setForeground(Color.BLACK);
+        buyButton.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        
+        buyButton.addActionListener(e -> {
             if (cart.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Please add items to cart");
+                JOptionPane.showMessageDialog(this, "Please select items");
                 return;
             }
-            dispose();
-            new PaymentFrame(userEmail, cart).setVisible(true);
+            double total = cart.stream().mapToDouble(OrderItem::getSubtotal).sum();
+            setVisible(false);
+            new PaymentMethodFrame(parentFrame, userEmail, cart, total).setVisible(true);
         });
+        
+        mainPanel.add(buyButton);
 
-        logoutButton.addActionListener(e -> {
-            dispose();
-            new LoginFrame().setVisible(true);
+        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        add(scrollPane, BorderLayout.CENTER);
+    }
+
+    private JPanel createItemPanel(FoodItem item) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBorder(BorderFactory.createLineBorder(Color.GRAY, 1));
+        panel.setBackground(Color.WHITE);
+        panel.setMaximumSize(new Dimension(350, 80));
+        panel.setPreferredSize(new Dimension(350, 80));
+
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setBackground(Color.WHITE);
+        infoPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+
+        JLabel nameLabel = new JLabel(item.name);
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        
+        JLabel priceLabel = new JLabel("₹" + String.format("%.0f", item.price));
+        priceLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        priceLabel.setForeground(Color.GRAY);
+
+        infoPanel.add(nameLabel);
+        infoPanel.add(priceLabel);
+        panel.add(infoPanel, BorderLayout.CENTER);
+
+        JButton addButton = new JButton("+");
+        addButton.setFont(new Font("Arial", Font.BOLD, 20));
+        addButton.setPreferredSize(new Dimension(50, 50));
+        addButton.setBackground(Color.white);
+        addButton.setForeground(Color.black);
+        addButton.setBorder(BorderFactory.createEmptyBorder());
+        
+        addButton.addActionListener(e -> {
+            OrderItem orderItem = new OrderItem(item.id, item.name, 1, item.price);
+            cart.add(orderItem);
+            updateCartDisplay();
         });
-
-        buttonPanel.add(logoutButton);
-        buttonPanel.add(proceedButton);
-        add(buttonPanel, BorderLayout.SOUTH);
+        
+        panel.add(addButton, BorderLayout.EAST);
+        return panel;
+    }
+    
+    private void updateCartDisplay() {
+        int totalItems = cart.size();
+        double totalAmount = cart.stream().mapToDouble(OrderItem::getSubtotal).sum();
+        cartLabel.setText("Selected Items: " + totalItems + " | Total: ₹" + String.format("%.0f", totalAmount));
     }
 
     private void loadMenuItems() {
-        List<FoodItem> items = menuDAO.getAllMenuItems();
-        for (FoodItem item : items) {
-            menuModel.addRow(new Object[]{item.id, item.name, "₹" + item.price});
-        }
+        // Items are loaded in createMainPanel
     }
 
-    private void updateCartTable() {
-        cartModel.setRowCount(0);
-        double total = 0;
-        for (OrderItem item : cart) {
-            cartModel.addRow(new Object[]{
-                item.getFoodName(),
-                item.getQuantity(),
-                "₹" + item.getPrice(),
-                "₹" + item.getSubtotal()
-            });
-            total += item.getSubtotal();
-        }
-        totalLabel.setText("Total: ₹" + String.format("%.2f", total));
+    public MenuSelectionFrame(String userEmail) {
+        this(null, userEmail);
     }
 }
